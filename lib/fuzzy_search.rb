@@ -1,5 +1,7 @@
 # vim:ts=2:sw=2:et
 
+require 'ar-extensions'
+
 module FuzzySearch
   
   def self.included(model)
@@ -14,6 +16,8 @@ module FuzzySearch
 
     # to avoid double entries
     used_tokens = []
+    token_fields = [:token, self.class.fuzzy_ref_id]
+    token_data = []
     self.class.fuzzy_props.each do |prop|
       prop_value = send(prop)
       next if prop_value.nil?
@@ -29,12 +33,13 @@ module FuzzySearch
         (0..word_as_chars.length - 3).each do |idx|
           token = word_as_chars[idx, 3].to_s
           unless used_tokens.member? token
-            trigram_type.send(:create, :token => token, self.class.fuzzy_ref_id => id)
+            token_data.push [token, id]
             used_tokens << token
           end
         end
       end
     end
+    trigram_type.send :import, token_fields, token_data, :validate => false
   end
 
   module WordNormalizerClassMethod
